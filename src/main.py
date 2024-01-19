@@ -72,36 +72,52 @@ class LEDStrip:
 
 
 # Create the user interface (UI) elements using the nicegui library
-with ui.card():
-    # Create an instance of the LEDStrip class with initial pin and num_leds values
-    led_strip_control = LEDStrip(pin="D18", num_leds=30, brightness=0.1)
+@ui.page("/")
+async def index():
+    with ui.card():
+        # Create an instance of the LEDStrip class with initial pin and num_leds values
+        led_strip_control = LEDStrip(pin="D18", num_leds=30, brightness=0.1)
+        with ui.column():
+            # Dropdown to select the pin
+            pin_dropdown_label = ui.label(text="Select a pin:")
+            led_strip_control.pin_dropdown = ui.select(
+                value="D18",
+                options=pins,
+                on_change=led_strip_control.handle_update,
+            )
+            ui.separator()
 
-    with ui.column():
-        # Dropdown to select the pin
-        led_strip_control.pin_dropdown = ui.select(
-            value="D18", options=pins, on_change=led_strip_control.handle_update
-        )
-        # Input field to set the number of LEDs
-        led_strip_control.num_leds_input = ui.number(
-            label="Number of LEDs",
-            value=1,
-            min=1,
-            on_change=led_strip_control.handle_update,
-        )
-        # Color picker to select the LED strip color
-        led_strip_control.color_picker = ui.color_input(
-            value="#ff0000", on_change=led_strip_control.handle_update
-        )
-        # Slider to adjust the brightness (0.1 to 1.0)
-        led_strip_control.brightness_slider = ui.slider(
-            value=0.1,
-            min=0.1,
-            max=1.0,
-            step=0.01,
-            on_change=led_strip_control.handle_update,
-        )
-        # Button to turn off the LED strip
-        off_button = ui.button(text="Turn Off", on_click=led_strip_control.turn_off)
+            # Input field to set the number of LEDs
+            num_leds_label = ui.label(text="Number of LEDs:")
+            led_strip_control.num_leds_input = ui.number(
+                value=1,
+                min=1,
+                on_change=led_strip_control.handle_update,
+            )
+            ui.separator()
+
+            # Color picker to select the LED strip color
+            color_picker_label = ui.label(text="Select a color:")
+            led_strip_control.color_picker = ui.color_input(
+                value="#ff0000",
+                on_change=led_strip_control.handle_update,
+            )
+            ui.separator()
+
+            # Slider to adjust the brightness
+            brightness_slider_label = ui.label(text="Adjust brightness:")
+            led_strip_control.brightness_slider = ui.slider(
+                value=0.1,
+                min=0.1,
+                max=0.4,  # Limited due to LED brightness, can be increased if needed (up to 1.0)
+                step=0.01,
+                on_change=led_strip_control.handle_update,
+            )
+            ui.separator()
+
+            # Button to turn off the LED strip
+            off_button = ui.button(text="Turn Off", on_click=led_strip_control.turn_off)
+
 
 # Run the UI with the specified title
 ui.run(title="LED Strip Control")
