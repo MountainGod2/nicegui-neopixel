@@ -1,4 +1,4 @@
-
+[nicegui-neopixel.webm](https://github.com/MountainGod2/nicegui-neopixel/assets/88257202/cc7c5027-474f-47a4-9bb3-3f0e3e805567)
 # LED Strip Control with NiceGUI and NeoPixel
 
 ## Description
