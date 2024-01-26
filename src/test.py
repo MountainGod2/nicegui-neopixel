@@ -1,8 +1,9 @@
+import asyncio
+
 import board
 import neopixel
 from adafruit_led_animation.animation.comet import Comet
-from nicegui import ui, app
-import asyncio
+from nicegui import app, ui
 
 # Constants
 PIXEL_COUNT = 100

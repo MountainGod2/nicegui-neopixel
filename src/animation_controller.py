@@ -1,11 +1,12 @@
+import asyncio
+
 import board
 import neopixel
-import asyncio
 from adafruit_led_animation.animation.comet import Comet
 from adafruit_led_animation.animation.pulse import Pulse
+from adafruit_led_animation.color import BLACK, RED
 from adafruit_led_animation.sequence import AnimationSequence
-from adafruit_led_animation.color import RED, BLACK
-from nicegui import ui, app
+from nicegui import app, ui
 
 num_pixels = 100
 pixel_pin = board.D18

@@ -1,10 +1,10 @@
 import asyncio
+
 import board
 import neopixel
 from adafruit_led_animation.animation.blink import Blink
 from adafruit_led_animation.animation.chase import Chase
 from adafruit_led_animation.animation.comet import Comet
-from adafruit_led_animation.sequence import AnimationSequence
 from adafruit_led_animation.animation.pulse import Pulse
 from adafruit_led_animation.animation.rainbow import Rainbow
 from adafruit_led_animation.animation.rainbowchase import RainbowChase
@@ -14,8 +14,8 @@ from adafruit_led_animation.animation.solid import Solid
 from adafruit_led_animation.animation.sparkle import Sparkle
 from adafruit_led_animation.animation.sparklepulse import SparklePulse
 from adafruit_led_animation.color import AMBER, JADE, PURPLE
-
-from nicegui import ui, app
+from adafruit_led_animation.sequence import AnimationSequence
+from nicegui import app, ui
 
 
 class AnimationController:

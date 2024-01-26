@@ -1,7 +1,7 @@
 import board
 import neopixel
-from nicegui import ui
 import webcolors
+from nicegui import ui
 
 # Define the available digital pins from the adafruit board module
 pins = [pin for pin in dir(board) if pin.startswith("D")]
