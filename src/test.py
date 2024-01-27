@@ -10,6 +10,7 @@ from nicegui import app, ui
 PIXEL_COUNT = 100
 BRIGHTNESS = 0.2
 
+# Initialize NeoPixel strip
 pixels = neopixel.NeoPixel(
     board.D18, PIXEL_COUNT, brightness=BRIGHTNESS, auto_write=False
 )
@@ -17,19 +18,14 @@ pixels = neopixel.NeoPixel(
 # Initialize storage
 storage = app.storage.general
 
-# Set default values for animations
-blink_params = storage.setdefault(
-    "blink_params",
-    {
-        "speed": 0.1,
+# Set default animation parameters
+animation_params = {
+    "blink": {
+        "speed": 1,
         "color": "(255,0,153)",
         "name": "blink",
     },
-)
-
-comet_params = storage.setdefault(
-    "comet_params",
-    {
+    "comet": {
         "speed": 0.1,
         "color": "(255,0,153)",
         "background_color": "(0,0,0)",
@@ -38,20 +34,16 @@ comet_params = storage.setdefault(
         "reverse": False,
         "name": "comet",
     },
-)
-
-rainbow_params = storage.setdefault(
-    "rainbow_params",
-    {
+    "rainbow": {
         "speed": 0.1,
         "period": 10,
         "step": 1,
         "precompute_rainbow": True,
         "name": "rainbow",
     },
-)
+}
 
-
+# Set default animation and control variables
 storage.setdefault("animation_running", False)
 storage.setdefault("stop_requested", False)
 
@@ -60,67 +52,27 @@ storage.setdefault("stop_requested", False)
 async def start_animation(animation_select):
     selected_animation = animation_select.value
     storage["stop_requested"] = False
+    await create_animation(selected_animation)
+
+
+async def create_animation(selected_animation):
+    animation_params[selected_animation]["name"] = selected_animation
+    animation = None
+
     if selected_animation == "blink":
-        await blink_animation()
-    elif selected_animation == "rainbow":
-        await rainbow_animation()
+        animation = Blink(pixels, **animation_params[selected_animation])
     elif selected_animation == "comet":
-        await comet_animation()
+        params = animation_params[selected_animation]
+        params["color"] = tuple(int(x) for x in params["color"].strip("()").split(","))
+        params["background_color"] = tuple(
+            int(x) for x in params["background_color"].strip("()").split(",")
+        )
+        animation = Comet(pixels, **params)
+    elif selected_animation == "rainbow":
+        animation = Rainbow(pixels, **animation_params[selected_animation])
 
-
-async def blink_animation():
-    blink_params = storage.get("blink_params")
-    speed = blink_params["speed"]
-    color = tuple(map(int, blink_params["color"].strip("()").split(",")))
-    name = blink_params["name"]
-
-    blink = Blink(pixels, speed=speed, color=color, name=name)
-    await run_animation(blink)
-
-
-# Function to create a Comet animation
-async def comet_animation():
-    comet_params = storage.get("comet_params")
-    speed = comet_params["speed"]
-    color = tuple(map(int, comet_params["color"].strip("()").split(",")))
-    background_color = tuple(
-        map(int, comet_params["background_color"].strip("()").split(","))
-    )
-    tail_length = comet_params["tail_length"]
-    bounce = comet_params["bounce"]
-    reverse = comet_params["reverse"]
-    name = comet_params["name"]
-
-    comet = Comet(
-        pixels,
-        speed=speed,
-        color=color,
-        background_color=background_color,
-        tail_length=tail_length,
-        bounce=bounce,
-        reverse=reverse,
-        name=name,
-    )
-    await run_animation(comet)
-
-
-async def rainbow_animation():
-    rainbow_params = storage.get("rainbow_params")
-    speed = rainbow_params["speed"]
-    period = rainbow_params["period"]
-    step = rainbow_params["step"]
-    precompute_rainbow = rainbow_params["precompute_rainbow"]
-    name = rainbow_params["name"]
-
-    rainbow = Rainbow(
-        pixels,
-        speed=speed,
-        period=period,
-        step=step,
-        name=name,
-        precompute_rainbow=precompute_rainbow,
-    )
-    await run_animation(rainbow)
+    if animation:
+        await run_animation(animation)
 
 
 # Function to stop the animation
@@ -148,10 +100,10 @@ async def run_animation(animation):
 # Reusable styling functions
 def apply_standard_style(parent, param, label_text):
     with parent:
-        ui.label(label_text).style("color: #666666; font-size: 0.8rem")
+        ui.label(label_text).style("color: #666666; font-size: 0.7rem").classes("my-3")
         ui.label().bind_text_from(param, label_text.lower()).style(
-            "color: #666666; font-size: 0.8rem"
-        )
+            "color: #666666; font-size: 0.7rem"
+        ).classes("my-3")
 
 
 def apply_slider(parent, param, min_val, max_val, step_val, param_name):
@@ -180,69 +132,79 @@ def apply_checkbox(parent, param, label, param_name):
 # Create UI
 @ui.page(path="/")
 def index():
-    with ui.card().classes("mx-auto").style("width: 300px") as container:
+    with ui.card().classes("mx-auto").style("width: 400px; padding: 20px") as container:
+        ui.label("LED Animation").classes("mx-auto").style(
+            "font-size: 1.5rem; font-weight: bold;"
+        ).tailwind("text-sky-500 dark:text-sky-400")
+
         with ui.row():
-            ui.label("Animation:").style("font-weight: bold;").classes(
-                "mx-auto; my-auto"
+            ui.label("Select Animation:").style("font-weight: bold;").classes(
+                "mx-auto my-auto"
             ).tailwind("text-sky-500 dark:text-sky-400")
             animation_select = ui.select(["blink", "comet", "rainbow"], value="comet")
 
-        blink_params_ui = (
-            ui.element()
-            .classes("w-full")
-            .bind_visibility_from(animation_select, "value", value="blink")
-        )
-        comet_params_ui = (
-            ui.element()
-            .classes("w-full")
-            .bind_visibility_from(animation_select, "value", value="comet")
-        )
-        rainbow_params_ui = (
-            ui.element()
-            .classes("w-full")
-            .bind_visibility_from(animation_select, "value", value="rainbow")
-        )
+        animation_params_ui = {
+            "blink": create_params_ui(
+                animation_params["blink"], animation_select, "blink"
+            ),
+            "comet": create_params_ui(
+                animation_params["comet"], animation_select, "comet"
+            ),
+            "rainbow": create_params_ui(
+                animation_params["rainbow"], animation_select, "rainbow"
+            ),
+        }
 
-        # Blink Parameters UI
-        with blink_params_ui:
-            apply_standard_style(blink_params_ui, blink_params, "Speed")
-            apply_slider(blink_params_ui, blink_params, 0.01, 1, 0.01, "speed")
-            apply_color_input(blink_params_ui, blink_params, "Color:", "color")
+        with ui.row().classes("mx-auto"):
+            ui.button("Stop", on_click=stop_animation).classes(
+                "mx-auto my-4 bg-red-500 hover:bg-red-400 text-white font-bold py-2 px-4 rounded"
+            )
+            ui.button(
+                "Start", on_click=lambda: start_animation(animation_select)
+            ).classes(
+                "mx-auto my-4 bg-sky-500 hover:bg-sky-400 text-white font-bold py-2 px-4 rounded"
+            )
 
-        with ui.element().classes("mx-auto") as button_container:
-            with ui.row():
-                ui.button("Stop", on_click=stop_animation).classes("mx-auto")
-                ui.button(
-                    "Start", on_click=lambda: start_animation(animation_select)
-                ).classes("mx-auto")
+        # Create UI for the selected animation parameters
+        selected_animation = animation_select.value
+        selected_params_ui = animation_params_ui.get(selected_animation, None)
+        if selected_params_ui:
+            with selected_params_ui:
+                pass
 
-        # Comet Parameters UI
-        with comet_params_ui:
-            apply_standard_style(comet_params_ui, comet_params, "Speed")
-            apply_slider(comet_params_ui, comet_params, 0.01, 1, 0.01, "speed")
-            apply_color_input(comet_params_ui, comet_params, "Color:", "color")
+
+# Function to create UI elements for animation parameters
+def create_params_ui(params, animation_select, animation_name):
+    params_ui = (
+        ui.element()
+        .classes("w-full")
+        .bind_visibility_from(animation_select, "value", value=animation_name)
+    )
+
+    with params_ui:
+        apply_standard_style(params_ui, params, "Speed")
+        apply_slider(params_ui, params, 0.01, 0.5, 0.01, "speed")
+        apply_color_input(params_ui, params, "Color:", "color")
+
+        if animation_name == "comet":
             apply_color_input(
-                comet_params_ui, comet_params, "Background color:", "background_color"
+                params_ui, params, "Background color:", "background_color"
             )
-            apply_standard_style(comet_params_ui, comet_params, "Tail length")
-            apply_slider(comet_params_ui, comet_params, 2, 100, 1, "tail_length")
-            apply_checkbox(comet_params_ui, comet_params, "Bounce", "bounce")
-            apply_checkbox(comet_params_ui, comet_params, "Reverse", "reverse")
+            apply_standard_style(params_ui, params, "Tail length")
+            apply_slider(params_ui, params, 2, 100, 1, "tail_length")
+            apply_checkbox(params_ui, params, "Bounce", "bounce")
+            apply_checkbox(params_ui, params, "Reverse", "reverse")
 
-        # Rainbow Parameters UI
-        with rainbow_params_ui:
-            apply_standard_style(rainbow_params_ui, rainbow_params, "Speed")
-            apply_slider(rainbow_params_ui, rainbow_params, 0.01, 1, 0.01, "speed")
-            apply_standard_style(rainbow_params_ui, rainbow_params, "Period")
-            apply_slider(rainbow_params_ui, rainbow_params, 1, 120, 1, "period")
-            apply_standard_style(rainbow_params_ui, rainbow_params, "Step")
-            apply_slider(rainbow_params_ui, rainbow_params, 1, 10, 1, "step")
+        if animation_name == "rainbow":
+            apply_standard_style(params_ui, params, "Period")
+            apply_slider(params_ui, params, 1, 120, 1, "period")
+            apply_standard_style(params_ui, params, "Step")
+            apply_slider(params_ui, params, 1, 10, 1, "step")
             apply_checkbox(
-                rainbow_params_ui,
-                rainbow_params,
-                "Precompute rainbow",
-                "precompute_rainbow",
+                params_ui, params, "Precompute rainbow", "precompute_rainbow"
             )
+
+    return params_ui
 
 
 # Run the UI
