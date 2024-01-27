@@ -144,109 +144,140 @@ async def run_animation(animation):
 
 def apply_standard_style(parent, param, label_text):
     with parent:
-        ui.label(label_text).style("color: #666666; font-size: 0.8rem")
-        ui.label().bind_text_from(param, label_text.lower()).style(
-            "color: #666666; font-size: 0.8rem"
-        )
+        label = ui.label(label_text).style("font-size: 0.8rem; color: #666;")
+        return label
 
 
-def apply_slider(parent, param, min_val, max_val, step_val, param_name):
+def apply_slider_with_label(
+    parent, param, min_val, max_val, step_val, label_text, param_name
+):
     with parent:
-        return ui.slider(min=min_val, max=max_val, step=step_val).bind_value(
+        label = apply_standard_style(parent, param, label_text)
+        slider = ui.slider(min=min_val, max=max_val, step=step_val).bind_value(
             param, param_name
         )
+        return label, slider
 
 
-def apply_color_input(parent, param, label, param_name):
+def apply_color_input(parent, param, label_text, param_name):
     with parent:
-        return (
-            ui.color_input(label=label)
+        color_input = (
+            ui.color_input(label=label_text)
             .bind_value(
                 param,
                 param_name,
                 backward=lambda x: f"rgb{x}",
                 forward=lambda x: x.replace("rgb", ""),
             )
-            .style("margin-bottom: 1.5rem")
+            .style("margin-bottom: 1.5rem; margin-top: -0.5rem;")
         )
+        return color_input
 
 
-def apply_checkbox(parent, param, label, param_name):
+def apply_checkbox_with_label(parent, param, label_text, param_name):
     with parent:
-        ui.label(label).classes("my-auto")
-        return ui.checkbox().bind_value(param, param_name)
+        label = ui.label(label_text).classes("my-auto").style("color: #666;")
+        checkbox = ui.checkbox().bind_value(param, param_name)
+        return label, checkbox
 
 
-# Create UI using NiceGUI
 @ui.page(path="/")
 def index():
-    with ui.card().classes("mx-auto").style("width: 300px") as container:
-        ui.label("Animation Controller").classes("mx-auto").style(
-            "font-size: 1.5rem; font-weight: bold;"
-        ).tailwind("text-sky-500 dark:text-sky-400")
-        with ui.row():
-            ui.label("Animation:").style("font-weight: bold;").classes(
-                "mx-auto; my-auto"
-            ).tailwind("text-sky-500 dark:text-sky-400")
-            animation_select = ui.select(["blink", "comet", "rainbow"], value="rainbow")
-
-        blink_params_ui = (
-            ui.element()
-            .classes("w-full")
-            .bind_visibility_from(animation_select, "value", value="blink")
-        )
-        comet_params_ui = (
-            ui.element()
-            .classes("w-full")
-            .bind_visibility_from(animation_select, "value", value="comet")
-        )
-        rainbow_params_ui = (
-            ui.element()
-            .classes("w-full")
-            .bind_visibility_from(animation_select, "value", value="rainbow")
+    ui.colors(primary="#f48fb1")
+    with ui.card().classes("mx-auto p-4 no-shadow border-[1px]").style(
+        "border: 4px solid #f48fb1; border-radius: 15px; background-color: #fce4ec; margin: 20px auto; width: 80%; max-width: 500px; min-width: 300px"
+    ) as container:
+        ui.label("Animation Controller").classes(
+            "mx-auto text-2xl font-bold text-pink-400 dark:text-pink-400"
         )
 
-        # Blink Parameters UI
-        with blink_params_ui:
-            apply_standard_style(blink_params_ui, blink_params, "Speed")
-            apply_slider(blink_params_ui, blink_params, 0.01, 5, 0.1, "speed")
-            apply_color_input(blink_params_ui, blink_params, "Color:", "color")
-
-        with ui.element().classes("mx-auto") as button_container:
-            with ui.row():
-                ui.button("Stop", on_click=stop_animation).classes("mx-auto")
-                ui.button(
-                    "Start", on_click=lambda: start_animation(animation_select)
-                ).classes("mx-auto")
-
-        # Comet Parameters UI
-        with comet_params_ui:
-            apply_standard_style(comet_params_ui, comet_params, "Speed")
-            apply_slider(comet_params_ui, comet_params, 0.01, 0.20, 0.01, "speed")
-            apply_color_input(comet_params_ui, comet_params, "Color:", "color")
-            apply_color_input(
-                comet_params_ui, comet_params, "Background color:", "background_color"
+        with ui.row().classes("mx-auto"):
+            ui.label("Select Animation:").classes(
+                "my-auto text-pink-400 dark:text-pink-400"
             )
-            apply_standard_style(comet_params_ui, comet_params, "Tail length")
-            apply_slider(comet_params_ui, comet_params, 2, 100, 1, "tail_length")
-            apply_checkbox(comet_params_ui, comet_params, "Bounce", "bounce")
-            apply_checkbox(comet_params_ui, comet_params, "Reverse", "reverse")
+            # Animation type selection
+            animation_select = ui.select(
+                ["blink", "comet", "rainbow"], value="rainbow"
+            ).classes("mx-auto")
 
-        # Rainbow Parameters UI
-        with rainbow_params_ui:
-            apply_standard_style(rainbow_params_ui, rainbow_params, "Speed")
-            apply_slider(rainbow_params_ui, rainbow_params, 0.01, 0.20, 0.01, "speed")
-            apply_standard_style(rainbow_params_ui, rainbow_params, "Period")
-            apply_slider(rainbow_params_ui, rainbow_params, 1, 120, 1, "period")
-            apply_standard_style(rainbow_params_ui, rainbow_params, "Step")
-            apply_slider(rainbow_params_ui, rainbow_params, 1, 10, 1, "step")
-            apply_checkbox(
-                rainbow_params_ui,
+        # Blink animation controls
+        blink_controls = (
+            ui.element()
+            .bind_visibility_from(animation_select, "value", value="blink")
+            .classes("w-full")
+        )
+        with blink_controls:
+            apply_slider_with_label(
+                blink_controls, blink_params, 0.01, 5, 0.1, "Speed:", "speed"
+            )
+            apply_color_input(blink_controls, blink_params, "Color:", "color")
+
+        # Comet animation controls
+        comet_controls = (
+            ui.element()
+            .bind_visibility_from(animation_select, "value", value="comet")
+            .classes("w-full")
+        )
+        with comet_controls:
+            apply_slider_with_label(
+                comet_controls, comet_params, 0.01, 0.20, 0.01, "Speed:", "speed"
+            )
+            apply_color_input(comet_controls, comet_params, "Color:", "color")
+            apply_color_input(
+                comet_controls,
+                comet_params,
+                "Background Color:",
+                "background_color",
+            )
+            apply_slider_with_label(
+                comet_controls,
+                comet_params,
+                0,
+                100,
+                1,
+                "Tail Length:",
+                "tail_length",
+            )
+            apply_checkbox_with_label(comet_controls, comet_params, "Bounce", "bounce")
+            apply_checkbox_with_label(
+                comet_controls, comet_params, "Reverse", "reverse"
+            )
+
+        # Rainbow animation controls
+        rainbow_controls = (
+            ui.element()
+            .bind_visibility_from(animation_select, "value", value="rainbow")
+            .classes("w-full")
+        )
+        with rainbow_controls:
+            apply_slider_with_label(
+                rainbow_controls,
                 rainbow_params,
-                "Precompute rainbow",
+                0.01,
+                0.20,
+                0.01,
+                "Speed:",
+                "speed",
+            )
+            apply_slider_with_label(
+                rainbow_controls, rainbow_params, 1, 100, 1, "Period:", "period"
+            )
+            apply_slider_with_label(
+                rainbow_controls, rainbow_params, 1, 100, 1, "Step:", "step"
+            )
+            apply_checkbox_with_label(
+                rainbow_controls,
+                rainbow_params,
+                "Precompute Rainbow",
                 "precompute_rainbow",
             )
 
+        # Start and Stop buttons
+        with ui.row().classes("mx-auto mt-4"):
+            ui.button("Stop", on_click=stop_animation).style("border-radius: 25px")
+            ui.button(
+                "Start", on_click=lambda: start_animation(animation_select)
+            ).style("border-radius: 25px")
 
-# Run the NiceGUI UI
+
 ui.run()
